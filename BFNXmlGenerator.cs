@@ -84,12 +84,13 @@ namespace BfnXmlReaderLibrary
     }
    
     */
-    
-    [AttributeUsage(AttributeTargets.Class)]
-    public class BFN_NEXAttribute : Attribute { }
     [Generator]
     public class BFNNexSourceGenerator : ISourceGenerator
     {
+        private static string GenerateSerializerMethod(string className) =>
+    $"public static XmlSerializer Serializer {{ get {{ return new XmlSerializer(typeof({className}), new XmlRootAttribute(nameof({className})) {{ Namespace = nameof({className}) }}); }} }}";
+    private static string GenerateSettingsMethod(string className) =>
+     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}\");       }}    }}";
         public void Initialize(GeneratorInitializationContext context)
         {
            
@@ -117,7 +118,15 @@ namespace BfnXmlReaderLibrary
                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
 
                 var normalNamespace = GetNamespaceFrom(classDeclaration);
+                // without this line, everything breaks apart
                 normalNamespace = normalNamespace.RemoveNode(classDeclaration, SyntaxRemoveOptions.KeepNoTrivia);
+
+                normalNamespace = AddUsingDirectives(normalNamespace);
+
+                var resistanceSerializerMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSerializerMethod(className));
+                partialClass = partialClass.AddMembers(resistanceSerializerMethod);
+                var settingsMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSettingsMethod(className));
+                partialClass = partialClass.AddMembers(settingsMethod);
 
                 if (normalNamespace == null)
                     continue;
@@ -128,6 +137,18 @@ namespace BfnXmlReaderLibrary
                 context.AddSource($"{className}.g.cs", sourceText);
 
             }
+        }
+
+        private static NamespaceDeclarationSyntax AddUsingDirectives(NamespaceDeclarationSyntax normalNamespace)
+        {
+            // this bastard needs a space infront...
+            var serialUsing = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" System.Xml.Serialization"));
+            var xml = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" System.Xml"));
+            var bfn_namespace = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" BfnXmlReaderLibrary"));
+            normalNamespace = normalNamespace.AddUsings(xml);
+            normalNamespace = normalNamespace.AddUsings(serialUsing);
+            normalNamespace = normalNamespace.AddUsings(bfn_namespace);
+            return normalNamespace;
         }
 
         private static string GetClassName(ClassDeclarationSyntax classDeclaration)
@@ -146,7 +167,7 @@ namespace BfnXmlReaderLibrary
                 case ClassDeclarationSyntax classDeclaration:
                     var attribute = classDeclaration.AttributeLists
                         .SelectMany(al => al.Attributes)
-                        .FirstOrDefault(a => a.Name.ToString() == "BFN_NEX");
+                        .FirstOrDefault(a => a.Name.ToString() == "System.Xml.Serialization.XmlRootAttribute");
                     if (attribute != null)
                     {
                         ClassDeclarations.Add(classDeclaration);
