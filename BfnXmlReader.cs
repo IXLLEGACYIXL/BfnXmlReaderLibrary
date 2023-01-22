@@ -19,4 +19,15 @@ public static class BfnXmlReader
             return new T();
         }
     }
+    public static XmlReaderSettings GetSettings(string schemaName, string xsdPath)
+    {
+        var settings = new XmlReaderSettings()
+        {
+            ValidationType = ValidationType.Schema,
+            DtdProcessing = DtdProcessing.Ignore,
+        };
+        settings.Schemas.Add(schemaName, xsdPath);
+        settings.ValidationEventHandler += (sender, exception) => throw exception.Exception;
+        return settings;
+    }
 }
