@@ -2,6 +2,9 @@
 using System.Xml;
 
 namespace BfnXmlReaderLibrary;
+namespace BfnXmlReaderLibrary
+{
+    
 /// <summary>
 /// Class that contains methods for working with XML files.<br/>
 /// Deserializing an XML file into an object.<br/>
