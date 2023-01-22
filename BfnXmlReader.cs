@@ -26,6 +26,7 @@ namespace BfnXmlReaderLibrary
         {
             try
             {
+                
                 using var fileStream = new FileStream(xmlFile, FileMode.Open);
                 using var reader = XmlReader.Create(fileStream, settings);
                 return (T)serializer.Deserialize(reader)!;

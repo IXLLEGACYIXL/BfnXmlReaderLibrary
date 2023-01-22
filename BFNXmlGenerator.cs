@@ -88,9 +88,9 @@ namespace BfnXmlReaderLibrary
     public class BFNNexSourceGenerator : ISourceGenerator
     {
         private static string GenerateSerializerMethod(string className) =>
-    $"public static XmlSerializer Serializer {{ get {{ return new XmlSerializer(typeof({className}), new XmlRootAttribute(nameof({className})) {{ Namespace = nameof({className}) }}); }} }}";
+    $"public static XmlSerializer Serializer {{ get {{ return new XmlSerializer(typeof({className})); }} }}";
     private static string GenerateSettingsMethod(string className) =>
-     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}\");       }}    }}";
+     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className})+\"ns\", \".\\\\{className}.xsd\");       }}    }}";
         public void Initialize(GeneratorInitializationContext context)
         {
            
@@ -167,7 +167,7 @@ namespace BfnXmlReaderLibrary
                 case ClassDeclarationSyntax classDeclaration:
                     var attribute = classDeclaration.AttributeLists
                         .SelectMany(al => al.Attributes)
-                        .FirstOrDefault(a => a.Name.ToString() == "System.Xml.Serialization.XmlRootAttribute");
+                        .FirstOrDefault(a => a.Name.ToString() == "ssSystem.Xml.Serialization.XmlRootAttribute");
                     if (attribute != null)
                     {
                         ClassDeclarations.Add(classDeclaration);
