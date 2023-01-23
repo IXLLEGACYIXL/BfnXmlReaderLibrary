@@ -90,7 +90,10 @@ namespace BfnXmlReaderLibrary
         private static string GenerateSerializerMethod(string className) =>
     $"public static XmlSerializer Serializer {{ get {{ return new XmlSerializer(typeof({className})); }} }}";
     private static string GenerateSettingsMethod(string className) =>
-     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className})+\"ns\", \".\\\\{className}.xsd\");       }}    }}";
+     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}.xsd\");       }}    }}";
+        private static string GenerateSmoothReadXml(string className) =>
+           $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}.xsd\");       }}    }}";
+
         public void Initialize(GeneratorInitializationContext context)
         {
            
@@ -115,7 +118,7 @@ namespace BfnXmlReaderLibrary
 
 
                 var partialClass = SyntaxFactory.ClassDeclaration(className)
-                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
+                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),SyntaxFactory.Token(SyntaxKind.PartialKeyword));
 
                 var normalNamespace = GetNamespaceFrom(classDeclaration);
                 // without this line, everything breaks apart
@@ -167,7 +170,7 @@ namespace BfnXmlReaderLibrary
                 case ClassDeclarationSyntax classDeclaration:
                     var attribute = classDeclaration.AttributeLists
                         .SelectMany(al => al.Attributes)
-                        .FirstOrDefault(a => a.Name.ToString() == "ssSystem.Xml.Serialization.XmlRootAttribute");
+                        .FirstOrDefault(a => a.Name.ToString() == "System.Xml.Serialization.XmlRootAttribute");
                     if (attribute != null)
                     {
                         ClassDeclarations.Add(classDeclaration);
