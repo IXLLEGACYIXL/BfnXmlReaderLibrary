@@ -3,6 +3,6 @@
     <BuildLogVerbosity>Quiet</BuildLogVerbosity>
     <BuildPriority>100</BuildPriority>
     <CopiedProjectDependencyPathsRelativeToSolutionDirectory />
-    <CopyReferencedAssembliesToWorkspace>True</CopyReferencedAssembliesToWorkspace>
+    <CopyReferencedAssembliesToWorkspace>False</CopyReferencedAssembliesToWorkspace>
   </Settings>
 </ProjectConfiguration>
