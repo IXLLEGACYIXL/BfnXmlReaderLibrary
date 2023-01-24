@@ -1,0 +1,8 @@
+﻿<ProjectConfiguration>
+  <Settings>
+    <BuildLogVerbosity>Quiet</BuildLogVerbosity>
+    <BuildPriority>100</BuildPriority>
+    <CopiedProjectDependencyPathsRelativeToSolutionDirectory />
+    <CopyReferencedAssembliesToWorkspace>True</CopyReferencedAssembliesToWorkspace>
+  </Settings>
+</ProjectConfiguration>

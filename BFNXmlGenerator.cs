@@ -12,88 +12,17 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace BfnXmlReaderLibrary
 {
-    /*
-    [Generator]
-    public class BFNXmlSourceGenerator : ISourceGenerator
-    {
-        private const string attributeName = "BFN_XML";
-
-        public void Execute(GeneratorExecutionContext context)
-        {
-            var compilation = context.Compilation;
-            var attributeType = compilation.GetTypeByMetadataName(attributeName);
-            if (attributeType == null)
-            {
-                // Abort if the attribute type cannot be found
-                return;
-            }
-
-            // Find all classes that have the BFN_XML attribute
-            var attributeClasses = compilation.SyntaxTrees
-                .SelectMany(st => st.GetRoot().DescendantNodes())
-                .OfType<ClassDeclarationSyntax>()
-                .Where(c => c.AttributeLists.SelectMany(a => a.Attributes).Any(a => a.Name.ToString() == attributeName))
-                .ToList();
-
-            if (!attributeClasses.Any())
-            {
-                // Abort if no classes were found with the BFN_XML attribute
-                return;
-            }
-
-            // Generate the partial class code
-            var generatedCode = GeneratePartialClasses(attributeClasses, attributeType);
-
-            // Add the generated code to the compilation
-            context.AddSource("BFNXmlPartial", SourceText.From(generatedCode, Encoding.UTF8));
-        }
-
-        public void Initialize(GeneratorInitializationContext context)
-        {
-            // No initialization required for this generator
-        }
-
-        private string GeneratePartialClasses(List<ClassDeclarationSyntax> attributeClasses, INamedTypeSymbol attributeType)
-        {
-            var code = "";
-            foreach (var attributeClass in attributeClasses)
-            {
-                var className = attributeClass.Identifier.ValueText;
-                var attribute = attributeClass.AttributeLists.SelectMany(a => a.Attributes)
-                                                               .FirstOrDefault(a => a.Name.ToString() == attributeName);
-                var attributeArguments = attribute.ArgumentList;
-                var xsdFilePath = attributeArguments.Arguments[0].ToString().Trim('"');
-                var schema = attributeArguments.Arguments[1].ToString().Trim('"');
-                var xmlRoot = attributeArguments.Arguments[2].ToString().Trim('"');
-                var namespaceName = attributeClass.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-                if (string.IsNullOrWhiteSpace(xsdFilePath))
-                    xsdFilePath = "." + className;
-                if (string.IsNullOrWhiteSpace(schema))
-                    schema = className;
-                if (string.IsNullOrWhiteSpace(xmlRoot))
-                    xmlRoot = className;
-                code += $"namespace {namespaceName} {{ " +
-                        $"partial class {className} {{ " +
-                        $"private static XmlSerializer GetSerializer() {{ return new XmlSerializer(typeof({className}), new XmlRootAttribute({xmlRoot}) {{ Namespace = {schema} }}); }}" +
-                        $"public static XmlReaderSettings GetXmlSettings() {{ return BfnXmlReader.GetSettings({schema}, {xsdFilePath}); }}" +
-                        $"}}" +
-                        $"}} \n";
-            }
-            return code;
-        }
-    }
-   
-    */
     [Generator]
     public class BFNNexSourceGenerator : ISourceGenerator
     {
         private static string GenerateSerializerMethod(string className) =>
     $"public static XmlSerializer Serializer {{ get {{ return new XmlSerializer(typeof({className})); }} }}";
     private static string GenerateSettingsMethod(string className) =>
-     $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}.xsd\");       }}    }}";
+     $"public static XmlReaderSettings Settings    {{        get        {{           return GetSettings(nameof({className}), $\".\\\\{{nameof({className})}}.xsd\");       }}    }}";
         private static string GenerateSmoothReadXml(string className) =>
-           $"public static XmlReaderSettings Settings    {{        get        {{           return BfnXmlReader.GetSettings(nameof({className}), \".\\\\{className}.xsd\");       }}    }}";
-
+           $"public static {className} ReadFrom(string xmlPath) {{ return ReadXml<{className}>(xmlPath,Settings,Serializer); }}";
+        private static string GenerateXmlReader = $" /// <summary>\r\n        /// Deserializes an XML file into an object of a specified generic type.\r\n        /// </summary>\r\n        /// <typeparam name=\"T\">The type of the object to deserialize the XML data into</typeparam>\r\n        /// <param name=\"xmlFile\">The file path of the XML file to deserialize</param>\r\n        /// <param name=\"settings\">The XmlReaderSettings to use when reading the XML file</param>\r\n        /// <param name=\"serializer\">The XmlSerializer to use for deserializing the XML data</param>\r\n        /// <returns>The deserialized object of type T, or a new instance of T if an exception occurred.</returns>\r\n        public static T ReadXml<T>(string xmlFile, XmlReaderSettings settings, XmlSerializer serializer)\r\n            where T : new()\r\n        {{\r\n            try\r\n            {{\r\n                \r\n                using var fileStream = new FileStream(xmlFile, FileMode.Open);\r\n                using var reader = XmlReader.Create(fileStream, settings);\r\n                return (T)serializer.Deserialize(reader)!;\r\n            }}\r\n            catch (Exception ex)\r\n            {{\r\n                Console.WriteLine(\"MOD EXCEPTION: XML was not loaded\\n\" + ex.ToString());\r\n                return new T();\r\n            }}\r\n        }}";
+        private static string PreparedSettings = $"/// <summary>\r\n        /// Creates an XmlReaderSettings object with <see cref=\"ValidationType.Schema\"/> and <see cref=\"DtdProcessing.Ignore\"/>.\r\n        /// </summary>\r\n        /// <param name=\"schemaName\">The namespace of the schema to validate against</param>\r\n        /// <param name=\"xsdPath\">The file path of the XSD schema to validate against</param>\r\n        /// <returns>The XmlReaderSettings object with the specified validation options.</returns>\r\n        public static XmlReaderSettings GetSettings(string schemaName, string xsdPath)\r\n        {{\r\n            var settings = new XmlReaderSettings()\r\n            {{\r\n                ValidationType = ValidationType.Schema,\r\n                DtdProcessing = DtdProcessing.Ignore,\r\n            }};\r\n            settings.Schemas.Add(schemaName, xsdPath);\r\n            settings.ValidationEventHandler += (sender, exception) => throw exception.Exception;\r\n            return settings;\r\n        }}";
         public void Initialize(GeneratorInitializationContext context)
         {
            
@@ -129,8 +58,13 @@ namespace BfnXmlReaderLibrary
                 var resistanceSerializerMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSerializerMethod(className));
                 partialClass = partialClass.AddMembers(resistanceSerializerMethod);
                 var settingsMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSettingsMethod(className));
-                partialClass = partialClass.AddMembers(settingsMethod);
-
+                partialClass = partialClass.AddMembers(settingsMethod);                
+                var smoothXml = SyntaxFactory.ParseMemberDeclaration(GenerateSmoothReadXml(className));
+                partialClass = partialClass.AddMembers(smoothXml);
+                var XmlReader = SyntaxFactory.ParseMemberDeclaration(GenerateXmlReader);
+                partialClass = partialClass.AddMembers(XmlReader);
+                var DefaultSettings = SyntaxFactory.ParseMemberDeclaration(PreparedSettings);
+                partialClass = partialClass.AddMembers(DefaultSettings);
                 if (normalNamespace == null)
                     continue;
                 var compilationUnit = SyntaxFactory.CompilationUnit()
@@ -147,10 +81,8 @@ namespace BfnXmlReaderLibrary
             // this bastard needs a space infront...
             var serialUsing = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" System.Xml.Serialization"));
             var xml = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" System.Xml"));
-            var bfn_namespace = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(" BfnXmlReaderLibrary"));
             normalNamespace = normalNamespace.AddUsings(xml);
             normalNamespace = normalNamespace.AddUsings(serialUsing);
-            normalNamespace = normalNamespace.AddUsings(bfn_namespace);
             return normalNamespace;
         }
 
