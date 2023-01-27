@@ -47,7 +47,7 @@ namespace BfnXmlReaderLibrary
 
 
                 var partialClass = SyntaxFactory.ClassDeclaration(className)
-                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),SyntaxFactory.Token(SyntaxKind.PartialKeyword));
+                    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.PartialKeyword));
 
                 var normalNamespace = GetNamespaceFrom(classDeclaration);
                 // without this line, everything breaks apart
@@ -55,15 +55,8 @@ namespace BfnXmlReaderLibrary
 
                 normalNamespace = AddUsingDirectives(normalNamespace);
 
-                var resistanceSerializerMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSerializerMethod(className));
-                partialClass = partialClass.AddMembers(resistanceSerializerMethod);
-                var settingsMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSettingsMethod(className));
-                partialClass = partialClass.AddMembers(settingsMethod);                
-                var smoothXml = SyntaxFactory.ParseMemberDeclaration(GenerateSmoothReadXml(className));
-                partialClass = partialClass.AddMembers(smoothXml);
-                var XmlReader = SyntaxFactory.ParseMemberDeclaration(GenerateXmlReader);
-                partialClass = partialClass.AddMembers(XmlReader);
-                var DefaultSettings = SyntaxFactory.ParseMemberDeclaration(PreparedSettings);
+                var DefaultSettings = AddMethodsToTheClass(className, ref partialClass);
+
                 partialClass = partialClass.AddMembers(DefaultSettings);
                 if (normalNamespace == null)
                     continue;
@@ -74,6 +67,20 @@ namespace BfnXmlReaderLibrary
                 context.AddSource($"{className}.g.cs", sourceText);
 
             }
+        }
+
+        private static MemberDeclarationSyntax AddMethodsToTheClass(string className, ref ClassDeclarationSyntax partialClass)
+        {
+            var resistanceSerializerMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSerializerMethod(className));
+            partialClass = partialClass.AddMembers(resistanceSerializerMethod);
+            var settingsMethod = SyntaxFactory.ParseMemberDeclaration(GenerateSettingsMethod(className));
+            partialClass = partialClass.AddMembers(settingsMethod);
+            var smoothXml = SyntaxFactory.ParseMemberDeclaration(GenerateSmoothReadXml(className));
+            partialClass = partialClass.AddMembers(smoothXml);
+            var XmlReader = SyntaxFactory.ParseMemberDeclaration(GenerateXmlReader);
+            partialClass = partialClass.AddMembers(XmlReader);
+            var DefaultSettings = SyntaxFactory.ParseMemberDeclaration(PreparedSettings);
+            return DefaultSettings;
         }
 
         private static NamespaceDeclarationSyntax AddUsingDirectives(NamespaceDeclarationSyntax normalNamespace)
